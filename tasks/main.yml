@@ -1,0 +1,45 @@
+---
+# tasks file for deploy_sql_server
+  - name: Install Postgres on RHEL based OS
+    yum:
+      name: "{{ item }}"
+      state: present
+      update_cache: true
+    become: true
+    loop:
+      - postgresql
+      - postgresql-server
+      - postgresql-contrib
+    when: ansible_os_family == 'RedHat'
+
+  - name: Initialize PostgreSQL
+    shell: "postgresql-setup initdb"
+
+  - name: Start and enable postgres services
+    service: "name={{ item }} state=started enabled=yes"
+    with_items:
+      - postgresql
+
+  - name: CREATE DATABASE 
+    shell: "sudo -u postgres psql -c \"CREATE DATABASE {{ db_name }}\""
+
+  - name: ALTER USER 
+    shell: "sudo -u postgres psql -c \"ALTER USER postgres WITH password '{{ db_pass }}'\""
+
+  - name: Ensure PostgreSQL is listening on *
+    lineinfile:
+      dest: "{{ postgresql_conf }}"
+      regexp: '^#listen_addresses\s*='
+      line: "listen_addresses='*'"
+      state: present
+
+  - name: Add new configuration to "pg_hba.conf"
+    blockinfile: 
+      dest: "{{ pg_hba_conf }}"
+      block: |
+        host    all             all             {{ appIP }}/32                md5
+
+  - name: Restartr
+    service: "name={{ item }} state=restarted"
+    with_items:
+      - postgresql

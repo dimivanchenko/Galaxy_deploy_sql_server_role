@@ -1,0 +1,5 @@
+---
+# defaults file for deploy_sql_server
+postgresql_conf: /var/lib/pgsql/data/postgresql.conf
+pg_hba_conf: /var/lib/pgsql/data/pg_hba.conf
+user_name: ec2-user
